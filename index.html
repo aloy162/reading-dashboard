@@ -356,7 +356,13 @@ function renderDashboard() {
   rated.forEach(b => { if (starDist[b.별점] !== undefined) starDist[b.별점]++; });
 
   // 5점 책 (전체)
-  const top5 = allBooks.filter(b => b.별점 === 5);
+  const top5 = (selectedYear === YEAR_ALL
+    ? allBooks
+    : allBooks.filter(b => {
+        const y = b.완료일 ? b.완료일.getFullYear() : null;
+        return y === +selectedYear;
+      })
+  ).filter(b => b.별점 === 5);
 
   // 상태 — 연도 필터 적용, 예정 제외
   const statusMap = {};
@@ -415,10 +421,12 @@ function renderDashboard() {
     </div>
 
     <div class="row-2">
-      <div class="card">
-        <div class="card-title"><span class="card-title-dot" style="background:var(--coral)"></span>월별 완독 권수</div>
-        <div class="chart-container">
-          <canvas id="lineChart"></canvas>
+      <div class="card" style="display:flex;flex-direction:column;height:220px;">
+        <div class="card-title" style="flex-shrink:0;"><span class="card-title-dot" style="background:var(--coral)"></span>월별 완독 권수</div>
+        <div style="flex:1;display:flex;align-items:center;">
+          <div class="chart-container" style="width:100%;">
+            <canvas id="lineChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="card">
@@ -469,8 +477,9 @@ function renderDashboard() {
     </div>
 
     <div class="row-bottom">
-      <div class="card">
-        <div class="card-title"><span class="card-title-dot" style="background:var(--peach)"></span>⭐⭐⭐⭐⭐ 책 목록</div>
+      <div class="card" style="display:flex;flex-direction:column;height:220px;">
+        <div class="card-title" style="flex-shrink:0;"><span class="card-title-dot" style="background:var(--peach)"></span>⭐⭐⭐⭐⭐ 책 목록</div>
+        <div style="overflow-y:auto;flex:1;">
         ${top5.length ? top5.map((b,i) => `
           <div class="book-item">
             <div class="book-num">${i+1}</div>
@@ -481,6 +490,7 @@ function renderDashboard() {
             <span class="stars">★★★★★</span>
           </div>
         `).join('') : '<div style="color:var(--ink3);padding:1rem 0;font-size:13px;">5점 책이 없습니다</div>'}
+        </div>
       </div>
       <div class="card" style="padding:0;overflow:hidden;min-height:220px;">
         <div class="photo-wrap">${photoHTML}</div>
@@ -503,8 +513,8 @@ function renderDashboard() {
           backgroundColor: 'rgba(242,139,112,0.12)',
           borderWidth: 2.5,
           pointBackgroundColor: '#F28B70',
-          pointRadius: 5,
-          pointHoverRadius: 7,
+          pointRadius: 3,
+          pointHoverRadius: 5,
           fill: true,
           tension: 0.35,
         }]
