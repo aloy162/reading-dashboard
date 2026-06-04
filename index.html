@@ -169,31 +169,6 @@ body {
 .goal-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--coral), var(--yellow)); transition: width 0.8s ease; }
 .goal-sub { font-size: 12px; color: var(--ink3); margin-top: 8px; }
 
-/* PHOTO SLIDESHOW */
-.photo-wrap {
-  width: 100%; height: 100%;
-  min-height: 200px;
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-  background: #F2EDE8;
-}
-.photo-slide {
-  position: absolute; inset: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0;
-  transition: opacity 0.8s ease;
-}
-.photo-slide.active { opacity: 1; }
-.photo-placeholder {
-  width: 100%; height: 100%; min-height: 200px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 10px; color: var(--ink3);
-  font-size: 13px; text-align: center; padding: 1.5rem;
-}
-.photo-placeholder .icon { font-size: 32px; }
 
 /* LOADING */
 .loading {
@@ -241,10 +216,6 @@ footer {
 <script>
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSLlR8sumZmXcwVTjqutAXrSuRajkdX1_BcLdy2FjF9Op3TkKuop6XkWdWoaD2SRsNEevJyDX7bA_b1/pub?gid=0&single=true&output=csv';
 
-// ✏️ 사진 파일명 여기에 추가하세요 (GitHub에 올린 파일명)
-const PHOTOS = [
-  // 예: 'photo1.jpg', 'photo2.jpg'
-];
 
 const FIELD_COLORS = ['#F28B70','#6DBFB0','#F5C842','#A89CC8','#7EB5D6','#F7C59F','#E87D9A','#8CC9A0','#D4A5C9','#7BB3C4'];
 const STATUS_COLORS = { '완독': '#6DBFB0', '진행': '#7EB5D6', '중단': '#B0A89C', '예정': '#F5C842' };
@@ -306,20 +277,6 @@ function renderYearTabs(years) {
   });
 }
 
-function startSlideshow() {
-  if (PHOTOS.length === 0) return;
-  if (slideTimer) clearInterval(slideTimer);
-  const slides = document.querySelectorAll('.photo-slide');
-  if (!slides.length) return;
-  slides.forEach(s => s.classList.remove('active'));
-  slideIndex = 0;
-  slides[0].classList.add('active');
-  slideTimer = setInterval(() => {
-    slides[slideIndex].classList.remove('active');
-    slideIndex = (slideIndex + 1) % slides.length;
-    slides[slideIndex].classList.add('active');
-  }, 4000);
-}
 
 function renderDashboard() {
   const books = filterBooks(selectedYear);
@@ -387,10 +344,6 @@ function renderDashboard() {
   const pct = Math.min(100, Math.round(total/GOAL*100));
   const MONTHS = ['1','2','3','4','5','6','7','8','9','10','11','12'];
 
-  // 슬라이드쇼 HTML
-  const photoHTML = PHOTOS.length > 0
-    ? PHOTOS.map((p,i) => `<div class="photo-slide${i===0?' active':''}" style="background-image:url('${p}')"></div>`).join('')
-    : `<div class="photo-placeholder"><div class="icon">🌸</div><div>사진을 추가해보세요<br><small>index.html의 PHOTOS 배열에<br>파일명을 입력하세요</small></div></div>`;
 
   document.getElementById('main-content').innerHTML = `
     <div class="metrics">
@@ -413,32 +366,35 @@ function renderDashboard() {
         <div class="metric-sub">권당 소요 시간</div>
       </div>
       <div class="metric-card c4">
-        <div class="metric-emoji">🎯</div>
-        <div class="metric-label">연간 목표</div>
-        <div class="metric-value">${pct}<span style="font-size:16px;font-weight:400;"> %</span></div>
-        <div class="metric-sub">${GOAL}권 목표 · ${Math.max(0,GOAL-total)}권 남음</div>
+        <div class="metric-emoji">${selectedYear === YEAR_ALL ? '📚' : '🎯'}</div>
+        <div class="metric-label">${selectedYear === YEAR_ALL ? '전체 등록 책' : '연간 목표'}</div>
+        <div class="metric-value">${selectedYear === YEAR_ALL ? allBooks.length : pct + '<span style="font-size:16px;font-weight:400;"> %</span>'}</div>
+        <div class="metric-sub">${selectedYear === YEAR_ALL ? '진행·중단·완독 모두 포함' : GOAL + '권 목표 · ' + Math.max(0,GOAL-total) + '권 남음'}</div>
       </div>
     </div>
 
     <div class="row-2">
-      <div class="card" style="display:flex;flex-direction:column;height:220px;">
+      <div class="card" style="display:flex;flex-direction:column;">
         <div class="card-title" style="flex-shrink:0;"><span class="card-title-dot" style="background:var(--coral)"></span>월별 완독 권수</div>
-        <div style="flex:1;display:flex;align-items:center;">
-          <div class="chart-container" style="width:100%;">
+        <div style="flex:1;display:flex;align-items:center;min-height:130px;">
+          <div class="chart-container" style="width:100%;height:130px;">
             <canvas id="lineChart"></canvas>
           </div>
         </div>
+        <div style="text-align:center;font-size:12px;color:var(--ink3);padding:8px 0 2px;flex-shrink:0;">
+          월평균 <strong style="color:var(--coral);">${(total / 12).toFixed(1)}</strong>권
+        </div>
       </div>
-      <div class="card">
-        <div class="card-title"><span class="card-title-dot" style="background:var(--mint)"></span>연간 목표 달성</div>
+      <div class="card" style="display:flex;flex-direction:column;">
+        <div class="card-title" style="flex-shrink:0;"><span class="card-title-dot" style="background:var(--mint)"></span>${selectedYear === YEAR_ALL ? '누적 독서 현황' : '연간 목표 달성'}</div>
         <div class="goal-nums">
           <span class="goal-big">${total}</span>
-          <span class="goal-of">/ ${GOAL}권</span>
+          <span class="goal-of">${selectedYear === YEAR_ALL ? '권 완독' : '/ ' + GOAL + '권'}</span>
         </div>
-        <div class="goal-track"><div class="goal-fill" style="width:${pct}%"></div></div>
-        <div class="goal-sub">목표까지 ${Math.max(0,GOAL-total)}권 남았어요 🌟</div>
+        <div class="goal-track"><div class="goal-fill" style="width:${selectedYear === YEAR_ALL ? Math.min(100,Math.round(total/allBooks.length*100)) : pct}%"></div></div>
+        <div class="goal-sub">${selectedYear === YEAR_ALL ? '지금까지 ' + total + '권 읽었어요 📖' : '목표까지 ' + Math.max(0,GOAL-total) + '권 남았어요 🌟'}</div>
         <div style="margin-top:1rem;">
-          <div class="card-title" style="margin-bottom:8px;"><span class="card-title-dot" style="background:var(--lavender)"></span>전체 현황</div>
+          <div class="card-title" style="margin-bottom:8px;"><span class="card-title-dot" style="background:var(--lavender)"></span>${selectedYear === YEAR_ALL ? "전체 현황" : selectedYear + "년 현황"}</div>
           ${Object.entries(statusMap).map(([s,n]) => `
             <div class="status-row" style="background:${STATUS_BG[s]||'#f5f5f5'}">
               <span class="status-label"><span class="status-dot" style="background:${STATUS_COLORS[s]||'#ccc'}"></span>${s}</span>
@@ -476,10 +432,9 @@ function renderDashboard() {
       </div>
     </div>
 
-    <div class="row-bottom">
-      <div class="card" style="display:flex;flex-direction:column;height:220px;">
-        <div class="card-title" style="flex-shrink:0;"><span class="card-title-dot" style="background:var(--peach)"></span>⭐⭐⭐⭐⭐ 책 목록</div>
-        <div style="overflow-y:auto;flex:1;">
+    <div class="card" style="display:flex;flex-direction:column;height:240px;">
+      <div class="card-title" style="flex-shrink:0;"><span class="card-title-dot" style="background:var(--peach)"></span>평점 5점 책 목록</div>
+      <div style="overflow-y:auto;flex:1;">
         ${top5.length ? top5.map((b,i) => `
           <div class="book-item">
             <div class="book-num">${i+1}</div>
@@ -487,13 +442,12 @@ function renderDashboard() {
               <div class="book-title">${b.제목}</div>
               <div class="book-meta">${b.분야||''} ${b.저자 ? '· '+b.저자 : ''}</div>
             </div>
-            <span class="stars">★★★★★</span>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0;">
+              <span class="stars">★★★★★</span>
+              <span style="font-size:10px;color:var(--ink3);">${b.완료일 ? b.완료일.toLocaleDateString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit'}) : ''}</span>
+            </div>
           </div>
         `).join('') : '<div style="color:var(--ink3);padding:1rem 0;font-size:13px;">5점 책이 없습니다</div>'}
-        </div>
-      </div>
-      <div class="card" style="padding:0;overflow:hidden;min-height:220px;">
-        <div class="photo-wrap">${photoHTML}</div>
       </div>
     </div>
   `;
@@ -531,7 +485,7 @@ function renderDashboard() {
     });
   }
 
-  setTimeout(startSlideshow, 100);
+
 }
 
 function loadData() {
